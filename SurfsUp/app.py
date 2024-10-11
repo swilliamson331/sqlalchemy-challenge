@@ -43,6 +43,7 @@ def welcome():
         f"Available Routes:<br/>"
         f"<a href='/api/v1.0/precipitation'>precipitation</a><br/>"
         f"<a href='/api/v1.0/stations'>stations</a><br/>"
+        f"<a href='/api/v1.0/tobs'>temperature</a><br/>"
     )
 
 @app.route("/api/v1.0/precipitation")
@@ -73,6 +74,22 @@ def stations():
 
     # Return List of stations
     return jsonify(all_stations)
+
+@app.route("/api/v1.0/tobs")
+def temperature():
+
+    """Temperature Analysis"""
+
+    # Query temperature
+    max_date = session.query(func.max(Measurement.date)).scalar()
+    max_date_dt = dt.datetime.strptime(max_date, "%Y-%m-%d")
+    year_ago = max_date_dt - dt.timedelta(days=365)
+    filtered_data = session.query(Measurement).filter(Measurement.date >= year_ago).filter(Measurement.station == 'USC00519281').group_by(Measurement.date).order_by(Measurement.date).all()
+
+    precipitation_data = {row.date: row.tobs for row in filtered_data}
+
+    # Return List of stations
+    return jsonify(precipitation_data)
 
 if __name__ == '__main__':
     app.run(debug=True)
