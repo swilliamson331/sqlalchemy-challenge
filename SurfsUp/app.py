@@ -44,6 +44,8 @@ def welcome():
         f"<a href='/api/v1.0/precipitation'>precipitation</a><br/>"
         f"<a href='/api/v1.0/stations'>stations</a><br/>"
         f"<a href='/api/v1.0/tobs'>temperature</a><br/>"
+        f"<a href='/api/v1.0/<start>'>click this link, then input start date into url to see min max and avg temp</a><br/>"
+        f"<a href='/api/v1.0/<start>/<end>'>click this link, then input start and end date into url to see min max and avg temp</a><br/>"
     )
 
 @app.route("/api/v1.0/precipitation")
@@ -90,6 +92,49 @@ def temperature():
 
     # Return List of stations
     return jsonify(precipitation_data)
+
+@app.route("/api/v1.0/<start>")
+def query_by_start(start):
+    
+    # If wanted, uncomment the below to get start date as input from the user in termianl instead of url
+    # start = input("Enter the start date (YYYY-MM-DD): ")
+    
+    # define start date 
+    start_date = dt.datetime.strptime(start, "%Y-%m-%d")
+
+    # Query the database for TMIN, TAVG, and TMAX
+    start_sum = session.query(func.min(Measurement.tobs).label("TMIN"),
+                            func.avg(Measurement.tobs).label("TAVG"),
+                            func.max(Measurement.tobs).label("TMAX")).filter(Measurement.date >= start_date).all()
+
+
+    # Create a dictionary
+    start_date_data = {"TMIN": start_sum[0].TMIN, "TAVG": start_sum[0].TAVG, "TMAX": start_sum[0].TMAX}
+
+    return jsonify(start_date_data)
+
+# Route for /api/v1.0/<start>/<end>
+@app.route("/api/v1.0/<start>/<end>")
+def query_by_start_end(start, end):
+
+    # If wanted, uncomment the below to get start and end date as input from the user in termianl instead of url
+    # start = input("Enter the start date (YYYY-MM-DD): ")
+    # end = input("Enter the end date (YYYY-MM-DD): ")
+
+    # Define start and end dates
+    start_date = dt.datetime.strptime(start, "%Y-%m-%d")
+    end_date = dt.datetime.strptime(end, "%Y-%m-%d")
+
+    # Query the database for TMIN, TAVG, and TMAX
+    start_end_sum = session.query(func.min(Measurement.tobs).label("TMIN"),
+                            func.avg(Measurement.tobs).label("TAVG"),
+                            func.max(Measurement.tobs).label("TMAX")).filter(Measurement.date >= start_date, Measurement.date <= end_date).all()
+
+    # Create a dictionary 
+    start_end_sum = {"TMIN": start_end_sum[0].TMIN, "TAVG": start_end_sum[0].TAVG, "TMAX": start_end_sum[0].TMAX}
+
+    return jsonify(start_end_sum)
+
 
 if __name__ == '__main__':
     app.run(debug=True)
